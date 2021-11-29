@@ -1,0 +1,427 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+# install.packages('plotly')
+# install.packages("dplyr")
+# install.packages("imputeTS")
+# install.packages("plyr")
+#  install.packages("inspectdf")
+# install.packages("glimpse")
+# install.packages("Cairo")
+library(dplyr)
+library(tidyverse)
+library(inspectdf)
+library(RColorBrewer)
+library(ggplot2)
+library(visdat)
+#library(glimpse)
+library(inspectdf)
+library(imputeTS)
+library(hrbrthemes)
+library(cartography)
+library(leaflet)
+library(plyr)
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(maps)
+library(mapproj)
+library(ggmap)
+library(spData)
+library(sf)
+library(shiny)
+library(mapdata)
+library(plotly)
+library(countrycode)
+#library(Cairo)
+library(forecast)
+
+hotel_information <- read.csv('hotel_bookings.csv')
+hotel_information
+
+mtcars <- hotel_information %>% group_by(lead_time, arrival_date_year) %>%  dplyr ::summarise(count = n(),
+                                                                                              canceled = sum(is_canceled)) %>% mutate(per = canceled/count) %>% as.data.frame()
+
+
+
+
+summary(hotel_information)           
+sapply(hotel_information,function(x) sum(is.na(x)))
+hotel_information %>% inspectdf::inspect_na() %>% inspectdf::show_plot()
+
+drop_na(hotel_information)
+nrow(hotel_information)
+drop_na(hotel_information) %>% nrow()
+
+# Define UI for application that draws a histogram
+ui <- navbarPage(
+    "hotel information",
+    tabPanel(
+        "Q1",
+        sidebarPanel(
+            selectInput("year",
+                        "Select year",choices = c(2015, 2016, 2017),
+                        selected = 2015)
+        ),
+        # Show a plot of the generated distribution
+        mainPanel(
+            plotlyOutput("distPlot")
+        ),
+),
+    tabPanel(
+        "Q2",
+        sidebarPanel(
+          checkboxGroupInput("checkGroup", label = h3("Checkbox group"),
+                             choices = list(2015, 2016, 2017),
+                             selected = 2015),
+        ),
+        mainPanel(
+          plotOutput(
+            "plot",
+            height = 350,
+            click = "plot1_click",
+            brush = brushOpts(id = "plot1_brush")
+          ),
+          actionButton("exclude_toggle", "Toggle points"),
+          actionButton("exclude_reset", "Reset")
+        ),
+),
+    tabPanel(
+        "Q3",
+        leafletOutput("map"),
+        absolutePanel(
+          id = "controls",
+          class = "panel panel-default",
+          fixed = TRUE,
+          draggable = TRUE,
+          top = 60,
+          left = "auto",
+          width = 330,
+          height = "auto",
+          
+          h2("Visitor Country"),
+          
+          
+          plotOutput("brandBar"),
+        )
+    ),
+    navbarMenu("Q4",
+               tabPanel("meal vs is.canceled","one",
+                        sidebarPanel(
+                          dateRangeInput("dates", label = h3("Date range"), start = ("2015-1-1"),end = ("2017-1-1")),
+                        ),
+                        mainPanel(
+                        plotOutput("distPlot1")),),
+               tabPanel("reserved room type vs is canceled","two",
+                        sidebarPanel(
+                          dateRangeInput("dates2", label = h3("Date range"), start = ("2015-1-1"),end = ("2017-1-1")),
+                        ),
+                        mainPanel(
+                        plotOutput("distPlot2")),),
+               tabPanel("required_car_parking_spaces bs is_canceled","three",
+                        sidebarPanel(
+                          dateRangeInput("dates3", label = h3("Date range"), start = ("2015-1-1"),end = ("2017-1-1")),
+                        ),
+                        mainPanel(
+                        plotOutput("distPlot3")),),
+               tabPanel("deposit_type vs is canceled","four",
+                        sidebarPanel(
+                          dateRangeInput("dates4", label = h3("Date range"), start = ("2015-1-1"),end = ("2017-1-1")),
+                        ),
+                        mainPanel(
+                        plotOutput("distPlot4")),)
+))
+
+# Define server logic required to draw a histogram
+server <- function(input, output) {
+
+    output$distPlot <- renderPlotly({
+        #######   Q1
+        hotel_adr <- hotel_information %>% select(`adr`)
+        hotel_information <- hotel_information %>% filter(arrival_date_year == input$year)
+        hotel_name_adr_month <- hotel_information %>% select(`hotel`,
+                                                             `adr`,
+                                                             `arrival_date_month`)
+        
+        
+        
+        n <- data.frame(hotel_adr)
+        boxplot(n,col=c("steelblue"),ylab = "Length",las=1,font.lab=2)
+        new_hotel_adr <- hotel_adr %>% filter(adr !='5400')
+        q <- data.frame(new_hotel_adr)
+        boxplot(q,col=c("steelblue"),ylab = "Length",las=1,font.lab=2)
+        
+        #group by
+       
+        
+        month_ba <- hotel_name_adr_month %>% group_by(arrival_date_month, hotel) %>% dplyr :: summarise(count = n(),
+                                                                                                        sum_adr = sum(adr))%>%mutate(per= sum_adr/count,) %>%  as.data.frame()
+        month_ba
+        
+        
+        d <-ggplot(month_ba, aes(x=arrival_date_month,y= per, fill=hotel))+
+            geom_bar(alpha=0.6, stat="identity")+
+            scale_fill_brewer(palette= "Set3")+
+            facet_grid(month_ba$hotel ~ .)+
+            theme_minimal()
+        ggplotly(d)
+    })
+    
+  ###################################################################  
+    output$distPlot1 <- renderPlot({
+        hotel_market <- hotel_information %>% select(`market_segment`,
+                                                      `adr`, )
+        hotel_market
+        #group by
+        hotel_market_seg <- hotel_market %>% group_by(market_segment) %>% summarise(count = n()) %>% as.data.frame()
+        hotel_market_seg
+        n <-hotel_information %>% select('reservation_status_date')
+        print(n)
+        m <-hotel_information$reservation_status_date
+        m
+        
+        l <- as.Date(m,'%Y/%m/%d')
+        l
+        print(input$dates)
+        
+        hotel_information <- hotel_information %>% filter(as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') >= input$dates[1]  & as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') <= input$dates[2])
+        print(hotel_information)
+        ##################ʵ��
+        #Generate subset
+        hotel_meal <- hotel_information %>% select(`meal`,`is_canceled`)
+        hotel_meal
+        #group by
+        #meal vs is.canceled
+        b <- hotel_meal %>% group_by(meal, is_canceled) %>% dplyr ::summarise(count = n()) %>% as.data.frame()
+        ce = ddply(b,"meal",transform,percent_count =count/sum(count)*100 )
+        ce
+        print(ce)
+        h <- ce[ce$is_canceled=="0",]
+        h
+        barplot(height=h$percent_count, names=h$meal,col=rgb(0.2,0.4,0.6,0.6), width=c(92310,798,14463,11668,1169),xlab = 'meal',
+                ylab='not_canceled_percent_count', main = 'not_canceled vs meal')
+        #ggplot(ce,aes(x=meal,y= percent_count, fill=factor(is_canceled)))+
+        # geom_bar(stat = "identity", colour = "black")+
+        #scale_fill_brewer(palette= "Pastel1")
+        
+        ############################
+        
+    })
+    
+    
+    ##############################################################
+    output$distPlot2 <- renderPlot({
+        #######   Q4
+      n <-hotel_information %>% select('reservation_status_date')
+      print(n)
+      m <-hotel_information$reservation_status_date
+      m
+      
+      l <- as.Date(m,'%Y/%m/%d')
+      l
+      hotel_information <- hotel_information %>% filter(as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') >= input$dates2[1]  & as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') <= input$dates2[2])
+      hotel_room <- hotel_information %>% select(`reserved_room_type`,`is_canceled`)
+      hotel_room
+      
+      
+      f <- hotel_room %>% group_by(reserved_room_type, is_canceled) %>%dplyr :: summarise(count = n()) %>% as.data.frame()
+      cf = ddply(f,"reserved_room_type",transform,percent_count = count/sum(count)*100)
+      cf
+      m <- cf[cf$is_canceled=="0",]
+      m
+      
+      barplot(height=m$percent_count, names=m$reserved_room_type,col=rgb(0.2,0.4,0.6,0.6), width=c(52364,750,624,13099,4621,2017,1331,356,4), xlab = 'reserved_room_type',
+              ylab = 'not_canceled_percent_count', main = 'not_canceled vs reserved_room_type')
+      #ggplot(cf,aes(x=reserved_room_type,y= percent_count, fill=factor(is_canceled)))+
+      #  geom_bar(stat = "identity", colour = "black")+
+      # scale_fill_brewer(palette= "Pastel1")
+    })
+    
+    
+    ###################################################################
+    output$distPlot3 <- renderPlot({
+        #######   Q4
+      # if (input$dates3[1] < as.Date("2015/1/1",'%Y/%m/%d') | input$dates3[2] > as.Date("2017/1/1",'%Y/%m/%d')) {
+      #   hotel_information <- hotel_information %>% filter(as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') >= as.Date("2015/1/1",'%Y/%m/%d')  & as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') <= input$dates3[2])
+      #   
+      # }
+      hotel_information <- hotel_information %>% filter(as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') >= input$dates3[1]  & as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') <= input$dates3[2])
+      hotel_car <- hotel_information %>% select(`required_car_parking_spaces`,`is_canceled`)
+      hotel_car
+      
+      g <- hotel_car %>% group_by(required_car_parking_spaces, is_canceled) %>%dplyr :: summarise(count = n()) %>% as.data.frame()
+      cg = ddply(g,"required_car_parking_spaces",transform,percent_count = count/sum(count)*100)
+      #cg
+      n <- cg[cg$is_canceled=="0",]
+      
+      barplot(height=n$percent_count, names=n$required_car_parking_spaces,col=rgb(0.2,0.4,0.6,0.6), width=c(67750,7383,28,3,2), xlab = 'required_car_parking_spaces',
+              ylab = 'not_canceled_percent_count', main = 'not_canceled vs required_car_parking_spaces')
+      #ggplot(cg,aes(x=required_car_parking_spaces,y= percent_count, fill=factor(is_canceled)))+
+      #geom_bar(stat = "identity", colour = "black")+
+      #scale_fill_brewer(palette= "Pastel1")
+    })
+  ########################################################
+    output$distPlot4 <- renderPlot({
+        #######   Q4
+      hotel_information <- hotel_information %>% filter(as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') >= input$dates4[1]  & as.Date(hotel_information$reservation_status_date,'%Y/%m/%d') <= input$dates4[2])
+      hotel_deposit <- hotel_information %>% select(`deposit_type`,`is_canceled`)
+      hotel_deposit
+      
+      n <- hotel_deposit%>% group_by(deposit_type, is_canceled) %>% dplyr ::summarise(count = n()) %>% as.data.frame()
+      cn = ddply(n,"deposit_type",transform,percent_count = count/sum(count)*100)
+      #cn
+      
+      q <- cn[cn$is_canceled=="0",] 
+      barplot(height=q$percent_count, names=q$deposit_type,col=rgb(0.2,0.4,0.6,0.6), width=c(74947,93,126), xlab = 'deposit_type',
+              ylab = 'not_canceled_percent_count', main = 'not_canceled vs deposit_type')
+      #ggplot(cn,aes(x=deposit_type,y= percent_count, fill=factor(is_canceled)))+
+      # geom_bar(stat = "identity", colour = "black")+
+      #scale_fill_brewer(palette= "Pastel1")
+    })
+    ######################################################
+    output$distPlot5 <- renderPlot({
+      #######   Q2
+      hotel_information <- hotel_information %>% filter(arrival_date_year == input$checkGroup)
+      hotel_leadtime <- hotel_information %>% select(`lead_time`,`is_canceled`)
+      hotel_leadtime
+      #group by
+      a <- hotel_leadtime %>% group_by(lead_time) %>% dplyr ::summarise(count = n()) %>% as.data.frame()
+     # a
+      h <- seq(from = 1, to = 800, by = 100)
+      #h
+      a %>% 
+        filter(lead_time<700) %>% 
+        ggplot(aes(x = lead_time))+
+        geom_density(fill="#69b3a2",color="#e9ecef", alpha=0.8)
+      
+      b <- hotel_leadtime %>% group_by(lead_time) %>%  dplyr ::summarise(count = n(),
+                                                                         canceled = sum(is_canceled)) %>% mutate(per = canceled/count) %>% as.data.frame()
+     # b
+      
+      p3 <- ggplot(b, aes(x=lead_time, y=per)) +
+        geom_point() +
+        geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) +
+        theme_ipsum()
+      p3
+    })
+    
+    output$map <- renderLeaflet({
+      mapData<- world[c(2,11)]
+      #mapData
+     
+      hotel_map <- hotel_information %>% select(`country`)
+      hotel_map
+      l <- hotel_map %>% group_by(country) %>%dplyr :: summarise(count= n()) %>% as.data.frame()
+      l
+      l$country<-countrycode(l$country, origin = 'iso3c', destination = 'country.name')
+      l$country
+      
+      countries<-left_join(l, mapData, c("country" = "name_long"))
+      countries
+      # Generate basemap
+      map <- leaflet() %>%
+        addTiles() %>% 
+        setView(0, 0, 1)
+      # Add polygons to map
+      pal <- colorNumeric(palette = "YlOrRd", domain = countries$count)
+      map_labels <- paste("visitor from",
+                          countries$country, 
+                          "has an count", 
+                          round(countries$count, 1))
+      map %>% addPolygons(data = countries$geom,
+                                              fillColor = pal(countries$count),
+                                              fillOpacity = .7,
+                                              color = "grey",
+                                              weight = 1,
+                                              label = map_labels,
+                                              labelOptions = labelOptions(textsize = "12px")) %>% 
+        
+        # Add legend to map
+        addLegend(pal = pal, 
+                  values = countries$count,
+                  position = "bottomleft")
+    })
+    # Create bar chart of brands
+    output$brandBar <- renderPlot({
+      
+      
+      
+      hotel_thing <- hotel_information %>% select(`country`)
+      hotel_thing
+      l <- hotel_thing %>% group_by(country) %>%dplyr :: summarise(count= n()) %>% as.data.frame()
+      l
+      
+     
+      
+      # Get top 20 brands
+      brands <- l %>% 
+        arrange(desc(count)) %>% 
+        top_n(20)
+      brands
+      # Bar chart
+      ggplot(brands, aes(reorder(country, count))) +
+        geom_bar(aes(weight = count), fill = "tomato3") + 
+        coord_flip() +
+        ggtitle("Top 20 country visitor") +
+        xlab("country") +
+        ylab("count") +
+        theme_bw(base_size = 16)
+      
+      
+    })
+    
+    
+    
+    
+    
+    #--------------
+    vals <- reactiveValues(
+      keeprows = rep(TRUE, nrow(mtcars))
+    )
+    
+    output$plot <- renderPlot({
+      print(input$checkGroup)
+      # Plot the kept and excluded points as two separate data sets
+      #mtcars <- mtcars %>% filter(arrival_date_year == input$checkGroup)
+      keep    <- mtcars[ vals$keeprows, , drop = FALSE]
+      exclude <- mtcars[!vals$keeprows, , drop = FALSE]
+      
+      if (!is.null(input$checkGroup)) {
+        keep  <- keep %>% filter(arrival_date_year == input$checkGroup)
+        exclude  <- exclude %>% filter(arrival_date_year == input$checkGroup)
+      }
+      
+      
+      ggplot(keep, aes(lead_time, per)) + geom_point() +
+        geom_smooth(method = lm, fullrange = TRUE, color = "black") +
+        geom_point(data = exclude, shape = 21, fill = NA, color = "black", alpha = 0.25)
+    })
+    
+    # Toggle points that are clicked
+    observeEvent(input$plot1_click, {
+      res <- nearPoints(mtcars, input$plot1_click, allRows = TRUE)
+      
+      vals$keeprows <- xor(vals$keeprows, res$selected_)
+    })
+    
+    # Toggle points that are brushed, when button is clicked
+    observeEvent(input$exclude_toggle, {
+      res <- brushedPoints(mtcars, input$plot1_brush, allRows = TRUE)
+      
+      vals$keeprows <- xor(vals$keeprows, res$selected_)
+    })
+    
+    # Reset all points
+    observeEvent(input$exclude_reset, {
+      vals$keeprows <- rep(TRUE, nrow(mtcars))
+    })
+    
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)

@@ -1,0 +1,86 @@
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+install.packages('plotly')
+#
+# This is a Shiny web application. You can run the application by clicking
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+install.packages('plotly')
+install.packages("dplyr")
+install.packages("dplyr")
+library(dplyr)
+install.packages("imputeTS")
+install.packages("plyr")
+install.packages("insepectdf")
+install.packages("glimpse")
+shiny::runApp()
+runApp()
+setwd("F://5147final")
+runApp()
+# the 'Run App' button above.
+#
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+# install.packages('plotly')
+# install.packages("dplyr")
+# install.packages("imputeTS")
+# install.packages("plyr")
+install.packages("inspectdf")
+install.packages("inspectdf")
+library(inspectdf)
+shiny::runApp()
+install.packages("inspectdf")
+install.packages("glimpse")
+runApp()
+runApp()
+install.packages("inspectdf")
+shiny::runApp()
+runApp()
+runApp()
+runApp()
+runApp()
+setwd("~/Desktop/5147final")
+runApp()
+library(Cairo)
+library(Cairo)
+runApp()
+hotel_information <- read.csv('hotel_bookings.csv')
+runApp()
+runApp()
+runApp()
+runApp()
+# Find out more about building applications with Shiny here:
+#
+#    http://shiny.rstudio.com/
+#
+# install.packages('plotly')
+# install.packages("dplyr")
+# install.packages("imputeTS")
+# install.packages("plyr")
+#  install.packages("inspectdf")
+#install.packages("glimpse")
+install.packages("Cairo")
+runApp()
+shiny::runApp()
+runApp()
+setwd("~/Desktop/5147final")
+runApp()
+runApp()
+install.packages('plotly')
+install.packages("dplyr")
+install.packages("imputeTS")
+install.packages("plyr")
+install.packages("inspectdf")
+install.packages("glimpse")
